@@ -1,0 +1,6 @@
+[package]
+name = "slack-notify"
+version = "0.1.0"
+authors = ["Yasumasa Tamura <tamura@c.titech.ac.jp>"]
+
+[dependencies]
