@@ -1,6 +1,19 @@
 [package]
+name        = "slack_notify"
+version     = "0.1.0"
+authors     = ["Yasumasa Tamura <tamura@c.titech.ac.jp>"]
+description = "Slack notification command"
+
+[[bin]]
 name = "slack-notify"
-version = "0.1.0"
-authors = ["Yasumasa Tamura <tamura@c.titech.ac.jp>"]
+path = "src/main.rs"
 
 [dependencies]
+serde_json = "1.0"
+clap       = "2.31.2"
+
+[dependencies.jsonway]
+git = "https://github.com/rustless/jsonway"
+
+[dependencies.curl]
+git = "https://github.com/alexcrichton/curl-rust.git"
