@@ -1,54 +1,51 @@
-use std::io::{Read, Error as IOError};
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+
+use std::error::Error;
 use std::fs::File;
-use std::collections::HashMap;
+use std::path::Path;
+use serde_json::{Value, Error};
 
-extern crate url;
-extern crate toml;
 
+pub static DEFAULT_FILEPATH: String = String::from("~/.config/slack-notify/config.json");
+static DEFAULT_USERNAME: String     = String::from("slack-notify");
+static DEFAULT_ICON_EMOJI: String   = String::from(":ghost:");
+
+
+#[derive(Serialize, Deserialize)]
 pub struct Config {
+    workspace: String,
     username: String,
-    icon: String,
-    workspace: HashMap<String, url::Url>
+    icon_emoji: String
 }
 
-pub enum LoadError {
-    Io(IOError),
-    Parse(toml::de::Error),
-    Undefined(String)
-}
 
 impl Config {
-    pub fn load(path: &str) -> Result<Config, LoadError> {
-        Config::load_toml(&path).and_then(|toml| {
-            let _username = match toml.get("username") {
-                Some(value) => value.as_str().unwrap(),
-                None => "slack_bot"
-            };
-            let _icon = match toml.get("icon") {
-                Some(value) => value.as_str().unwrap(),
-                None => ""
-            };
-            let mut config = Config {
-                username: _username.to_string(),
-                icon: _icon.to_string(),
-                workspace: HashMap::new()
-            };
-            let workspace = toml.get("workspace")
-                                .and_then(|value| {value.as_array()});
-            for value in workspace {
-                let name = value.get("name").and_then(|v| {v.as_str()}).unwrap().to_string();
-                let url = url::Url::from_str(value.get("url").and_then(|v| {v.as_str()}).unwrap());
-                config.workspace.insert(name, url);
-            }
-            Ok(config)
+
+    pub fn new() -> Option<Config> {
+        let mut config = Config {
+            workspace:  String::new(),
+            username:   DEFAULT_USERNAME,
+            icon_emoji: DEFAULT_ICON_EMOJI
+        };
+        Some(config)
+    }
+
+    pub fn load_file<P: AsRef<Path>>(path: P) -> Result<Config, Error> {
+        File::open(path).and_then(|file| {
+            serde_json::from_reader(file)
         })
     }
 
-    pub fn save(_path: &str) -> bool {
-        false
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        File::open(path).and_then(|file| {
+            serde_json::ser::to_writer_pretty(path, &self)
+        })
     }
 
-    pub fn username(&self) -> &String {
+    pub fn username(&self) -> &String
         &self.username
     }
 
@@ -56,41 +53,8 @@ impl Config {
         &self.icon
     }
 
-    pub fn workspace(&self, name: &str) -> Option<&url::Url> {
-        self.workspace.get(&name.to_string())
+    pub fn workspace(&self, name: &str) -> &String {
+        &self.workspace
     }
 
-    fn load_toml(path: &str) -> Result<toml::Value, LoadError> {
-        match Config::load_file(&path) {
-            Ok(toml_string) => Config::parse_toml(&toml_string),
-            Err(e) => Err(LoadError::Io(e))
-        }
-    }
-
-    fn load_file(path: &str) -> Result<String, IOError> {
-        File::open(&path).and_then(|mut file| {
-            let mut toml_string = String::new();
-            file.read_to_string(&mut toml_string).and_then(|_| {
-                Ok(toml_string)
-            })
-        })
-    }
-
-    fn parse_toml(toml_string: &String) -> Result<toml::Value, LoadError> {
-        match toml_string.parse::<toml::Value>() {
-            Err(e) => Err(LoadError::Parse(e)),
-            Ok(toml) => Ok(toml)
-        }
-    }
-
-}
-
-
-use std::string::ToString;
-
-impl ToString for Config {
-    fn to_string(&self) -> String {
-        let mut ret = String::new();
-        ret
-    }
 }
